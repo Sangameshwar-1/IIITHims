@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id                 String  @id @default(uuid())
+  studentId          String  @unique
+  firstName          String
+  lastName           String
+  email              String
+  phone              String
+  dateOfBirth        String?
+  gender             String?
+  address            String?
+  city               String?
+  state              String?
+  pinCode            String?
+  bloodGroup         String?
+  nationality        String?
+  religion           String?
+  category           String?
+  photoUrl           String?
+  batchId            String?
+  courseId           String?
+  admissionDate      String?
+  previousSchool     String?
+  previousGrade      String?
+  previousPercentage String?
+  status             String  @default("Active")
+  createdAt          Float?
+}
+
+model Course {
+  id          String  @id @default(uuid())
+  name        String
+  code        String
+  duration    String?
+  description String?
+  department  String?
+  status      String  @default("Active")
+  createdAt   Float?
+}
+
+model Batch {
+  id              String  @id @default(uuid())
+  courseId        String?
+  name            String
+  startYear       String?
+  endYear         String?
+  currentSemester Int?
+  capacity        Int?
+  status          String  @default("Active")
+  createdAt       Float?
+}
+
+model Subject {
+  id        String  @id @default(uuid())
+  courseId  String?
+  name      String
+  code      String
+  credits   Int?
+  semester  Int?
+  type      String?
+  status    String  @default("Active")
+  createdAt Float?
+}
+
+model Exam {
+  id           String  @id @default(uuid())
+  name         String
+  type         String?
+  subjectId    String?
+  courseId     String?
+  batchId      String?
+  date         String?
+  startTime    String?
+  endTime      String?
+  totalMarks   Float?
+  passingMarks Float?
+  description  String?
+  venue        String?
+  status       String  @default("Scheduled")
+  createdAt    Float?
+}
+
+model ExamResult {
+  id            String  @id @default(uuid())
+  examId        String?
+  studentId     String?
+  marksObtained Float?
+  grade         String?
+  status        String?
+  remarks       String?
+  createdAt     Float?
+}
+
+model News {
+  id          String   @id @default(uuid())
+  title       String
+  content     String
+  author      String?
+  category    String?
+  isPublished Boolean?
+  publishedAt String?
+  createdAt   Float?
+}
