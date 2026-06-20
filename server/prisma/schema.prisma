@@ -303,6 +303,7 @@ model Mark {
   studentId     String
   student       Student  @relation(fields: [studentId], references: [id])
   subjectId     String?
+  subject       Subject? @relation(fields: [subjectId], references: [id])
   marksObtained Float?
   grade         String?
   remarks       String?
