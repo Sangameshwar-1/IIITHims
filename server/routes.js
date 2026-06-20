@@ -31,7 +31,7 @@ router.get('/seed', async (req, res) => {
     });
 
     console.log('Seeding exams...');
-    await prisma.exam.create({ data: { name: 'Mid-Term Examination 2024', type: 'Marks', courseId: cse.id, batchId: batch1.id, date: new Date('2024-10-15'), totalMarks: 100, passingMarks: 40, status: 'Scheduled' }});
+    await prisma.exam.create({ data: { name: 'Mid-Term Examination 2024', type: 'Marks', courseId: cse.id, batchId: batch1.id, date: '2024-10-15', totalMarks: 100, passingMarks: 40, status: 'Scheduled' }});
 
     res.json({ message: 'Seeding completed successfully!' });
   } catch (err) {
