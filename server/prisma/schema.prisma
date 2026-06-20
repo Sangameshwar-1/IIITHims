@@ -8,13 +8,71 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ─── Enums ───────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  PARENT
+  FACULTY
+  ADMIN
+}
+
+enum AttendanceStatus {
+  Present
+  Absent
+  Late
+  Excused
+}
+
+enum LeaveStatus {
+  Pending
+  Approved
+  Rejected
+}
+
+enum ComplaintStatus {
+  Open
+  InProgress
+  Resolved
+  Closed
+}
+
+enum PlacementStatus {
+  Applied
+  Shortlisted
+  Selected
+  Rejected
+}
+
+// ─── Core: Users & Auth ──────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student       Student?
+  faculty       Faculty?
+  parent        Parent?
+  notifications Notification[]
+  auditLogs     AuditLog[]
+}
+
+// ─── People ──────────────────────────────────────────────
+
 model Student {
-  id                 String  @id @default(uuid())
-  studentId          String  @unique
+  id                 String      @id @default(uuid())
+  userId             String      @unique
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId          String      @unique
   firstName          String
   lastName           String
   email              String
-  phone              String
+  phone              String?
   dateOfBirth        String?
   gender             String?
   address            String?
@@ -26,87 +84,442 @@ model Student {
   religion           String?
   category           String?
   photoUrl           String?
+  departmentId       String?
+  department         Department? @relation(fields: [departmentId], references: [id])
+  courseId            String?
+  course             Course?     @relation(fields: [courseId], references: [id])
   batchId            String?
-  courseId           String?
+  batch              Batch?      @relation(fields: [batchId], references: [id])
+  sectionId          String?
+  section            Section?    @relation(fields: [sectionId], references: [id])
+  roomId             String?
+  room               Room?       @relation(fields: [roomId], references: [id])
   admissionDate      String?
   previousSchool     String?
   previousGrade      String?
   previousPercentage String?
-  status             String  @default("Active")
-  createdAt          Float?
+  status             String      @default("Active")
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  parent        Parent?
+  attendances   Attendance[]
+  marks         Mark[]
+  issuedBooks   IssuedBook[]
+  leaveRequests LeaveRequest[]
+  complaints    Complaint[]
+  placements    Placement[]
+}
+
+model Parent {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentId String   @unique
+  student   Student  @relation(fields: [studentId], references: [id])
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  relation  String? // Father, Mother, Guardian
+  occupation String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Faculty {
+  id             String      @id @default(uuid())
+  userId         String      @unique
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facultyId      String      @unique
+  firstName      String
+  lastName       String
+  email          String
+  phone          String?
+  gender         String?
+  qualification  String?
+  specialization String?
+  experience     String?
+  photoUrl       String?
+  departmentId   String?
+  department     Department? @relation(fields: [departmentId], references: [id])
+  designation    String?
+  status         String      @default("Active")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  subjectAssignments FacultySubject[]
+  attendances        Attendance[]
+  notices            Notice[]
+  leaveRequests      LeaveRequest[]
+}
+
+// ─── Academics ───────────────────────────────────────────
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  headOfDept  String?
+  description String?
+  status      String   @default("Active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  courses  Course[]
+  faculty  Faculty[]
+  students Student[]
 }
 
 model Course {
-  id          String  @id @default(uuid())
-  name        String
-  code        String
-  duration    String?
-  description String?
-  department  String?
-  status      String  @default("Active")
-  createdAt   Float?
+  id             String      @id @default(uuid())
+  name           String
+  code           String      @unique
+  departmentId   String?
+  department     Department? @relation(fields: [departmentId], references: [id])
+  duration       String?
+  description    String?
+  totalSemesters Int?
+  status         String      @default("Active")
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  subjects   Subject[]
+  batches    Batch[]
+  students   Student[]
+  exams      Exam[]
+  timetables Timetable[]
+}
+
+model Subject {
+  id       String  @id @default(uuid())
+  name     String
+  code     String  @unique
+  courseId  String?
+  course   Course? @relation(fields: [courseId], references: [id])
+  semester Int?
+  credits  Int?
+  type     String? // Core, Elective, Lab
+  status   String  @default("Active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  facultyAssignments FacultySubject[]
+  attendances        Attendance[]
+  marks              Mark[]
+  timetables         Timetable[]
+  exams              Exam[]
+}
+
+model FacultySubject {
+  id        String   @id @default(uuid())
+  facultyId String
+  faculty   Faculty  @relation(fields: [facultyId], references: [id])
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  batchId   String?
+  sectionId String?
+  createdAt DateTime @default(now())
+
+  @@unique([facultyId, subjectId])
 }
 
 model Batch {
-  id              String  @id @default(uuid())
-  courseId        String?
+  id              String   @id @default(uuid())
   name            String
+  courseId         String?
+  course          Course?  @relation(fields: [courseId], references: [id])
   startYear       String?
   endYear         String?
   currentSemester Int?
   capacity        Int?
-  status          String  @default("Active")
-  createdAt       Float?
+  status          String   @default("Active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  students   Student[]
+  exams      Exam[]
+  timetables Timetable[]
 }
 
-model Subject {
-  id        String  @id @default(uuid())
+model Section {
+  id       String @id @default(uuid())
+  name     String // A, B, C
+  batchId  String?
   courseId  String?
-  name      String
-  code      String
-  credits   Int?
-  semester  Int?
-  type      String?
-  status    String  @default("Active")
-  createdAt Float?
+  capacity Int?
+  createdAt DateTime @default(now())
+
+  students Student[]
+}
+
+// ─── Attendance & Exams ──────────────────────────────────
+
+model Attendance {
+  id        String           @id @default(uuid())
+  studentId String
+  student   Student          @relation(fields: [studentId], references: [id])
+  subjectId String
+  subject   Subject          @relation(fields: [subjectId], references: [id])
+  facultyId String
+  faculty   Faculty          @relation(fields: [facultyId], references: [id])
+  date      String
+  status    AttendanceStatus @default(Present)
+  remarks   String?
+  createdAt DateTime         @default(now())
+
+  @@unique([studentId, subjectId, date])
 }
 
 model Exam {
-  id           String  @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
-  type         String?
+  type         String? // MidTerm, Final, Quiz, Internal
   subjectId    String?
-  courseId     String?
+  subject      Subject? @relation(fields: [subjectId], references: [id])
+  courseId      String?
+  course       Course?  @relation(fields: [courseId], references: [id])
   batchId      String?
+  batch        Batch?   @relation(fields: [batchId], references: [id])
   date         String?
   startTime    String?
   endTime      String?
-  totalMarks   Float?
-  passingMarks Float?
+  totalMarks   Int?
+  passingMarks Int?
   description  String?
   venue        String?
-  status       String  @default("Scheduled")
-  createdAt    Float?
+  status       String   @default("Scheduled")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  marks Mark[]
 }
 
-model ExamResult {
-  id            String  @id @default(uuid())
-  examId        String?
-  studentId     String?
+model Mark {
+  id            String   @id @default(uuid())
+  examId        String
+  exam          Exam     @relation(fields: [examId], references: [id])
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id])
+  subjectId     String?
   marksObtained Float?
   grade         String?
-  status        String?
   remarks       String?
-  createdAt     Float?
+  createdAt     DateTime @default(now())
+
+  @@unique([examId, studentId])
 }
 
-model News {
+model Timetable {
+  id          String   @id @default(uuid())
+  courseId     String?
+  course      Course?  @relation(fields: [courseId], references: [id])
+  batchId     String?
+  batch       Batch?   @relation(fields: [batchId], references: [id])
+  subjectId   String?
+  subject     Subject? @relation(fields: [subjectId], references: [id])
+  day         String // Monday, Tuesday, etc.
+  startTime   String
+  endTime     String
+  room        String?
+  facultyName String?
+  semester    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Communication ───────────────────────────────────────
+
+model Notice {
   id          String   @id @default(uuid())
   title       String
   content     String
-  author      String?
-  category    String?
-  isPublished Boolean?
-  publishedAt String?
-  createdAt   Float?
+  authorId    String?
+  author      Faculty? @relation(fields: [authorId], references: [id])
+  category    String? // General, Academic, Event, Holiday
+  targetRole  String? // ALL, STUDENT, FACULTY, PARENT
+  isPublished Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String? // Alert, Info, Warning
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Complaint {
+  id          String          @id @default(uuid())
+  studentId   String
+  student     Student         @relation(fields: [studentId], references: [id])
+  title       String
+  description String
+  category    String? // Academic, Hostel, Infrastructure, Other
+  status      ComplaintStatus @default(Open)
+  assignedTo  String?
+  resolution  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+// ─── Library ─────────────────────────────────────────────
+
+model LibraryBook {
+  id              String   @id @default(uuid())
+  title           String
+  author          String
+  isbn            String?  @unique
+  publisher       String?
+  category        String?
+  totalCopies     Int      @default(1)
+  availableCopies Int      @default(1)
+  location        String?
+  status          String   @default("Available")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  issuedBooks IssuedBook[]
+}
+
+model IssuedBook {
+  id         String       @id @default(uuid())
+  bookId     String
+  book       LibraryBook  @relation(fields: [bookId], references: [id])
+  studentId  String
+  student    Student      @relation(fields: [studentId], references: [id])
+  issueDate  String
+  dueDate    String
+  returnDate String?
+  status     String       @default("Issued") // Issued, Returned, Overdue
+  fine       Float?
+  createdAt  DateTime     @default(now())
+}
+
+// ─── Hostel ──────────────────────────────────────────────
+
+model Hostel {
+  id       String   @id @default(uuid())
+  name     String
+  type     String? // Boys, Girls
+  warden   String?
+  capacity Int?
+  address  String?
+  status   String   @default("Active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rooms Room[]
+}
+
+model Room {
+  id         String   @id @default(uuid())
+  hostelId   String
+  hostel     Hostel   @relation(fields: [hostelId], references: [id])
+  roomNumber String
+  floor      Int?
+  capacity   Int      @default(1)
+  occupancy  Int      @default(0)
+  type       String? // Single, Double, Triple
+  status     String   @default("Available")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  students Student[]
+}
+
+// ─── Transport ───────────────────────────────────────────
+
+model TransportRoute {
+  id            String   @id @default(uuid())
+  routeName     String
+  busNumber     String?
+  driverName    String?
+  driverPhone   String?
+  startPoint    String?
+  endPoint      String?
+  stops         String? // Comma-separated
+  departureTime String?
+  arrivalTime   String?
+  capacity      Int?
+  status        String   @default("Active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── Leave ───────────────────────────────────────────────
+
+model LeaveRequest {
+  id            String      @id @default(uuid())
+  applicantType String // STUDENT, FACULTY
+  studentId     String?
+  student       Student?    @relation(fields: [studentId], references: [id])
+  facultyId     String?
+  faculty       Faculty?    @relation(fields: [facultyId], references: [id])
+  leaveType     String? // Sick, Casual, Emergency
+  startDate     String
+  endDate       String
+  reason        String
+  status        LeaveStatus @default(Pending)
+  approvedBy    String?
+  remarks       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// ─── Placement ───────────────────────────────────────────
+
+model Company {
+  id            String   @id @default(uuid())
+  name          String
+  industry      String?
+  website       String?
+  contactPerson String?
+  contactEmail  String?
+  contactPhone  String?
+  description   String?
+  status        String   @default("Active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  placements Placement[]
+}
+
+model Placement {
+  id        String          @id @default(uuid())
+  companyId String
+  company   Company         @relation(fields: [companyId], references: [id])
+  studentId String
+  student   Student         @relation(fields: [studentId], references: [id])
+  position  String?
+  package   String?
+  driveDate String?
+  status    PlacementStatus @default(Applied)
+  resumeUrl String?
+  remarks   String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([companyId, studentId])
+}
+
+// ─── System ──────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
 }
