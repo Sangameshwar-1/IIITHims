@@ -16,7 +16,6 @@ const dashboardRoutes = require('./routes/dashboard');
 const studentsRoutes = require('./routes/students');
 const facultyRoutes = require('./routes/faculty');
 const parentsRoutes = require('./routes/parents');
-const academicsRoutes = require('./routes/academics');
 const migrateRoutes = require('./routes/migrate');
 
 app.use('/api/auth', authRoutes);
@@ -25,7 +24,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/students', studentsRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/parents', parentsRoutes);
-app.use('/api/academics', academicsRoutes);
 app.use('/api/migrate', migrateRoutes);
 
 app.use('/api/courses', require('./routes/courses'));
